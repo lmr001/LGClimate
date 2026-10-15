@@ -35,10 +35,11 @@ There is no intermediary project server, analytics service, or background daemon
 - Capability-driven UI instead of a hard-coded model profile
 - Universal Apple silicon and Intel builds
 
-Jet and Energy Control availability varies by model and region. LG Climate shows
+Jet and Energy Control availability varies by model and region. LG Climate enables
 each control only when the air conditioner's ThinQ profile reports a compatible
-writable property. The public API commonly exposes Energy Control as an on/off
-power-saving mode rather than the remote control's 80% / 60% / 40% steps.
+writable property; otherwise the row is labelled **Unavailable**. The public API
+commonly exposes Energy Control as an on/off power-saving mode rather than the
+remote control's 80% / 60% / 40% steps.
 
 ## Requirements
 

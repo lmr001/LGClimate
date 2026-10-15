@@ -71,7 +71,8 @@ private struct ControlsView: View {
                 Divider()
                 modeControl(unit)
                 settingsRows(unit)
-                if supportsSpecialModes(unit) { Divider(); specialModeRows(unit) }
+                Divider()
+                specialModeRows(unit)
                 if supportsSwing(unit) { Divider(); swingRows(unit) }
                 Divider()
                 timerRow(unit)
@@ -167,19 +168,25 @@ private struct ControlsView: View {
 
     private func specialModeRows(_ unit: AirConditioner) -> some View {
         VStack(spacing: 10) {
-            if unit.jetControl != nil {
+            if let _ = unit.jetControl {
                 CircleToggleRow(icon: "bolt.fill", title: "Jet mode", on: unit.jetModeEnabled) {
                     store.setJetMode(!unit.jetModeEnabled)
                 }
                 .disabled(unit.mode != .cool && unit.mode != .heat)
                 .help("Rapid cooling or heating at maximum airflow")
+            } else {
+                UnavailableFeatureRow(icon: "bolt.fill", title: "Jet mode")
+                    .help("This air conditioner's ThinQ profile does not report a Jet control")
             }
-            if unit.energyControl != nil {
+            if let _ = unit.energyControl {
                 CircleToggleRow(icon: "leaf.fill", title: "Energy control", on: unit.energyControlEnabled) {
                     store.setEnergyControl(!unit.energyControlEnabled)
                 }
                 .disabled(unit.mode != .cool)
                 .help("Reduce power use while cooling")
+            } else {
+                UnavailableFeatureRow(icon: "leaf.fill", title: "Energy control")
+                    .help("This air conditioner's ThinQ profile does not report an Energy control")
             }
         }
         .disabled(!unit.power || isPending)
@@ -214,9 +221,6 @@ private struct ControlsView: View {
         unit.profile.spec("windDirection", "rotateUpDown") != nil || unit.profile.spec("windDirection", "rotateLeftRight") != nil
     }
 
-    private func supportsSpecialModes(_ unit: AirConditioner) -> Bool {
-        unit.jetControl != nil || unit.energyControl != nil
-    }
 }
 
 private struct TargetTemperature: View {
@@ -356,6 +360,22 @@ private struct CircleToggleRow: View {
     }
 }
 
+private struct UnavailableFeatureRow: View {
+    let icon: String
+    let title: String
+    var body: some View {
+        HStack {
+            Image(systemName: icon).font(.system(size: 11, weight: .semibold))
+                .frame(width: 24, height: 24).background(Circle().fill(Color.white.opacity(0.06)))
+            Text(title).font(.system(size: 13))
+            Spacer()
+            Text("Unavailable").font(.caption).foregroundStyle(UITheme.secondary)
+        }
+        .foregroundStyle(UITheme.secondary)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct MenuRow: View {
     let title: String; let badge: Bool; let action: () -> Void
     @State private var hovered = false
@@ -379,7 +399,7 @@ private struct ConnectionView: View {
             if let error = store.error { Label(error, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange) }
             if canGoBack { Button("Refresh now") { Task { await store.refresh(); goBack() } }.buttonStyle(.bordered); Button("Sign out", role: .destructive, action: store.signOut).buttonStyle(.plain) }
             else { Button(store.busy ? "Connecting…" : "Connect") { Task { await store.connect() } }.buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black).disabled(store.busy || store.token.isEmpty).frame(maxWidth: .infinity, alignment: .trailing) }
-            Text("LG Climate 0.3.0 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
+            Text("LG Climate 0.3.1 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
             Text("Not affiliated with, endorsed by, or sponsored by LG Electronics. \"LG\" and \"ThinQ\" are trademarks of their respective owners.")
                 .font(.system(size: 9)).foregroundStyle(UITheme.secondary).multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
