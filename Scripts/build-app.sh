@@ -15,3 +15,17 @@ cp LICENSE THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/"
 codesign --force --sign "${LGCLIMATE_CODESIGN_IDENTITY:--}" --identifier com.lanceroberts.LGClimate "$APP"
 codesign --verify --deep --strict "$APP"
 echo "Built $APP"
+
+if [[ "${LGCLIMATE_LAUNCH_AFTER_BUILD:-1}" != "0" ]]; then
+  if pgrep -x LGClimate >/dev/null 2>&1; then
+    echo "Closing the running LG Climate app…"
+    pkill -TERM -x LGClimate || true
+    for _ in {1..20}; do
+      pgrep -x LGClimate >/dev/null 2>&1 || break
+      sleep 0.1
+    done
+  fi
+
+  echo "Launching the new LG Climate build…"
+  open -n "$APP"
+fi

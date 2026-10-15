@@ -73,11 +73,13 @@ The project is a Swift Package and does not require an Xcode project.
 ```sh
 swift test
 ./Scripts/build-app.sh
-open "dist/LG Climate.app"
 ```
 
-The build script creates a universal Apple silicon and Intel application. To use
-a stable signing identity:
+The build script creates a universal Apple silicon and Intel application, closes
+any running LG Climate instance, and launches the new build. To build without
+launching it, run `LGCLIMATE_LAUNCH_AFTER_BUILD=0 ./Scripts/build-app.sh`.
+
+To use a stable signing identity:
 
 ```sh
 export LGCLIMATE_CODESIGN_IDENTITY="Developer ID Application: Your Name"
