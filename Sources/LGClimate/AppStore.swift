@@ -94,6 +94,14 @@ final class AppStore: ObservableObject {
     func setPower(_ on: Bool) { send(resource: "operation", property: "airConOperationMode", value: .string(on ? "POWER_ON" : "POWER_OFF")) }
     func setMode(_ mode: ACMode) { send(resource: "airConJobMode", property: "currentJobMode", value: .string(mode.rawValue)) }
     func setFan(_ fan: String) { send(resource: "airFlow", property: "windStrength", value: .string(fan)) }
+    func setJetMode(_ on: Bool) {
+        guard let control = selected?.jetControl else { return }
+        send(resource: control.resource, property: control.property, value: on ? control.onValue : control.offValue)
+    }
+    func setEnergyControl(_ on: Bool) {
+        guard let control = selected?.energyControl else { return }
+        send(resource: control.resource, property: control.property, value: on ? control.onValue : control.offValue)
+    }
     func setSwing(vertical: Bool, on: Bool) { send(resource: "windDirection", property: vertical ? "rotateUpDown" : "rotateLeftRight", value: .bool(on)) }
     func setTemperature(_ value: Double) {
         guard let unit = selected, let spec = unit.temperatureSpec else { return }

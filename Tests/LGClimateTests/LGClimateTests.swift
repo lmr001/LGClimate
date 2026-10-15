@@ -21,6 +21,51 @@ final class LGClimateTests: XCTestCase {
         XCTAssertEqual(unit.currentTemperature, 25)
     }
 
+    func testJetUsesPowerFanAndHidesItFromRegularSpeeds() throws {
+        let profile = DeviceProfile(json: .object(["property": .object([
+            "airFlow": .object(["windStrength": spec(type: "enum", values: [.string("LOW"), .string("HIGH"), .string("POWER")])])
+        ])]))
+        let unit = makeUnit(profile: profile, state: ["airFlow": .object(["windStrength": .string("POWER")])])
+
+        XCTAssertEqual(unit.fans, ["LOW", "HIGH"])
+        XCTAssertTrue(unit.jetModeEnabled)
+        XCTAssertEqual(unit.jetControl, FeatureToggle(resource: "airFlow", property: "windStrength", onValue: .string("POWER"), offValue: .string("HIGH")))
+    }
+
+    func testDedicatedTurboAndPowerSaveControls() throws {
+        let profile = DeviceProfile(json: .object(["property": .object([
+            "turbo": .object(["turboEnabled": spec(type: "boolean", values: [])]),
+            "powerSave": .object(["powerSaveEnabled": spec(type: "boolean", values: [])])
+        ])]))
+        let unit = makeUnit(profile: profile, state: [
+            "turbo": .object(["turboEnabled": .bool(true)]),
+            "powerSave": .object(["powerSaveEnabled": .bool(true)])
+        ])
+
+        XCTAssertTrue(unit.jetModeEnabled)
+        XCTAssertTrue(unit.energyControlEnabled)
+        XCTAssertEqual(unit.jetControl?.resource, "turbo")
+        XCTAssertEqual(unit.energyControl?.property, "powerSaveEnabled")
+    }
+
+    func testEnergySavingJobModeFallback() throws {
+        let profile = DeviceProfile(json: .object(["property": .object([
+            "airConJobMode": .object(["currentJobMode": spec(type: "enum", values: [.string("COOL"), .string("ENERGY_SAVING")])])
+        ])]))
+        let unit = makeUnit(profile: profile, state: [
+            "airConJobMode": .object(["currentJobMode": .string("ENERGY_SAVING")])
+        ])
+
+        XCTAssertEqual(unit.mode, .cool)
+        XCTAssertTrue(unit.energyControlEnabled)
+        XCTAssertEqual(unit.energyControl?.onValue, .string("ENERGY_SAVING"))
+    }
+
+    private func makeUnit(profile: DeviceProfile, state: [String: JSONValue]) -> AirConditioner {
+        let device = DeviceSummary(json: .object(["deviceId": .string("1"), "deviceInfo": .object(["alias": .string("Office"), "modelName": .string("RAC")])]))!
+        return AirConditioner(summary: device, profile: profile, state: state, error: nil)
+    }
+
     private func spec(type: String, values: [JSONValue]) -> JSONValue {
         .object(["type": .string(type), "mode": .array([.string("r"), .string("w")]), "value": .object(["w": .array(values)])])
     }

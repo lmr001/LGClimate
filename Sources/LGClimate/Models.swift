@@ -59,6 +59,13 @@ struct DeviceProfile: Sendable {
     }
 }
 
+struct FeatureToggle: Equatable, Sendable {
+    let resource: String
+    let property: String
+    let onValue: JSONValue
+    let offValue: JSONValue
+}
+
 enum ACMode: String, CaseIterable, Identifiable, Sendable {
     case auto = "AUTO", cool = "COOL", dry = "AIR_DRY", fan = "FAN", heat = "HEAT"
     var id: String { rawValue }
@@ -76,10 +83,23 @@ struct AirConditioner: Identifiable, Sendable {
     var model: String { summary.model }
     var isOnline: Bool { error == nil }
     var power: Bool { (state.value("operation", "airConOperationMode")?.string ?? "").uppercased().contains("ON") }
-    var mode: ACMode? { state.value("airConJobMode", "currentJobMode")?.string.flatMap(ACMode.init(rawValue:)) }
+    var jobMode: String? { state.value("airConJobMode", "currentJobMode")?.string }
+    var mode: ACMode? {
+        guard let jobMode else { return nil }
+        if jobMode == "ENERGY_SAVING" { return .cool }
+        return ACMode(rawValue: jobMode)
+    }
     var currentTemperature: Double? { temperature(named: "currentTemperature") }
     var targetTemperature: Double? { temperature(named: "targetTemperature") ?? mode.flatMap { temperature(named: $0.rawValue.lowercased().replacingOccurrences(of: "air_dry", with: "dry") + "TargetTemperature") } }
     var fan: String? { state.value("airFlow", "windStrength")?.string }
+    var energyControlEnabled: Bool {
+        if let value = state.value("powerSave", "powerSaveEnabled")?.bool { return value }
+        return jobMode == "ENERGY_SAVING"
+    }
+    var jetModeEnabled: Bool {
+        if let value = state.value("turbo", "turboEnabled")?.bool { return value }
+        return Self.jetFanValues.contains(fan?.uppercased() ?? "")
+    }
     var verticalSwing: Bool? { state.value("windDirection", "rotateUpDown")?.bool }
     var horizontalSwing: Bool? { state.value("windDirection", "rotateLeftRight")?.bool }
 
@@ -87,7 +107,23 @@ struct AirConditioner: Identifiable, Sendable {
         guard let values = profile.spec("airConJobMode", "currentJobMode")?.values else { return [] }
         return values.compactMap { $0.string.flatMap(ACMode.init(rawValue:)) }
     }
-    var fans: [String] { profile.spec("airFlow", "windStrength")?.values.compactMap(\.string) ?? [] }
+    var fans: [String] { allFans.filter { !Self.jetFanValues.contains($0.uppercased()) } }
+    var jetControl: FeatureToggle? {
+        if profile.spec("turbo", "turboEnabled") != nil {
+            return FeatureToggle(resource: "turbo", property: "turboEnabled", onValue: .bool(true), offValue: .bool(false))
+        }
+        guard let jet = allFans.first(where: { Self.jetFanValues.contains($0.uppercased()) }),
+              let normal = preferredNormalFan else { return nil }
+        return FeatureToggle(resource: "airFlow", property: "windStrength", onValue: .string(jet), offValue: .string(normal))
+    }
+    var energyControl: FeatureToggle? {
+        if profile.spec("powerSave", "powerSaveEnabled") != nil {
+            return FeatureToggle(resource: "powerSave", property: "powerSaveEnabled", onValue: .bool(true), offValue: .bool(false))
+        }
+        let values = profile.spec("airConJobMode", "currentJobMode")?.values.compactMap(\.string) ?? []
+        guard values.contains("ENERGY_SAVING"), values.contains("COOL") else { return nil }
+        return FeatureToggle(resource: "airConJobMode", property: "currentJobMode", onValue: .string("ENERGY_SAVING"), offValue: .string("COOL"))
+    }
     var temperatureSpec: PropertySpec? {
         let modeProperty: String? = switch mode {
         case .heat: "heatTargetTemperature"
@@ -102,6 +138,13 @@ struct AirConditioner: Identifiable, Sendable {
         state.value("temperature", property)?.number
             ?? state.value("temperatureInUnits", property)?.number
             ?? state.value("temperature", property + "C")?.number
+    }
+
+    private static let jetFanValues: Set<String> = ["POWER", "JET", "TURBO"]
+    private var allFans: [String] { profile.spec("airFlow", "windStrength")?.values.compactMap(\.string) ?? [] }
+    private var preferredNormalFan: String? {
+        let preferred = ["HIGH", "MID_HIGH", "MID", "AUTO", "NATURE", "LOW"]
+        return preferred.compactMap { wanted in allFans.first { $0.uppercased() == wanted } }.first ?? fans.first
     }
 
     mutating func apply(resource: String, property: String, value: JSONValue) {

@@ -71,6 +71,7 @@ private struct ControlsView: View {
                 Divider()
                 modeControl(unit)
                 settingsRows(unit)
+                if supportsSpecialModes(unit) { Divider(); specialModeRows(unit) }
                 if supportsSwing(unit) { Divider(); swingRows(unit) }
                 Divider()
                 timerRow(unit)
@@ -164,6 +165,27 @@ private struct ControlsView: View {
         }.disabled(!unit.power || isPending).opacity(unit.power ? 1 : 0.4)
     }
 
+    private func specialModeRows(_ unit: AirConditioner) -> some View {
+        VStack(spacing: 10) {
+            if unit.jetControl != nil {
+                CircleToggleRow(icon: "bolt.fill", title: "Jet mode", on: unit.jetModeEnabled) {
+                    store.setJetMode(!unit.jetModeEnabled)
+                }
+                .disabled(unit.mode != .cool && unit.mode != .heat)
+                .help("Rapid cooling or heating at maximum airflow")
+            }
+            if unit.energyControl != nil {
+                CircleToggleRow(icon: "leaf.fill", title: "Energy control", on: unit.energyControlEnabled) {
+                    store.setEnergyControl(!unit.energyControlEnabled)
+                }
+                .disabled(unit.mode != .cool)
+                .help("Reduce power use while cooling")
+            }
+        }
+        .disabled(!unit.power || isPending)
+        .opacity(unit.power ? 1 : 0.4)
+    }
+
     private func swingRows(_ unit: AirConditioner) -> some View {
         VStack(spacing: 10) {
             if unit.profile.spec("windDirection", "rotateUpDown") != nil {
@@ -190,6 +212,10 @@ private struct ControlsView: View {
 
     private func supportsSwing(_ unit: AirConditioner) -> Bool {
         unit.profile.spec("windDirection", "rotateUpDown") != nil || unit.profile.spec("windDirection", "rotateLeftRight") != nil
+    }
+
+    private func supportsSpecialModes(_ unit: AirConditioner) -> Bool {
+        unit.jetControl != nil || unit.energyControl != nil
     }
 }
 
@@ -353,7 +379,7 @@ private struct ConnectionView: View {
             if let error = store.error { Label(error, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange) }
             if canGoBack { Button("Refresh now") { Task { await store.refresh(); goBack() } }.buttonStyle(.bordered); Button("Sign out", role: .destructive, action: store.signOut).buttonStyle(.plain) }
             else { Button(store.busy ? "Connecting…" : "Connect") { Task { await store.connect() } }.buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black).disabled(store.busy || store.token.isEmpty).frame(maxWidth: .infinity, alignment: .trailing) }
-            Text("LG Climate 0.2.1 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
+            Text("LG Climate 0.3.0 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
             Text("Not affiliated with, endorsed by, or sponsored by LG Electronics. \"LG\" and \"ThinQ\" are trademarks of their respective owners.")
                 .font(.system(size: 9)).foregroundStyle(UITheme.secondary).multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)

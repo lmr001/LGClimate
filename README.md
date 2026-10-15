@@ -23,6 +23,8 @@ There is no intermediary project server, analytics service, or background daemon
 ## Features
 
 - Power, target temperature, operating mode, and fan speed
+- Jet mode through a reported turbo control or `POWER` fan speed
+- Energy control through LG's reported power-save capability
 - Current room temperature in the panel and menu bar
 - Vertical and horizontal swing when supported by the unit
 - One-shot start and stop timers
@@ -32,6 +34,11 @@ There is no intermediary project server, analytics service, or background daemon
 - Optimistic controls followed by confirmation from LG's reported state
 - Capability-driven UI instead of a hard-coded model profile
 - Universal Apple silicon and Intel builds
+
+Jet and Energy Control availability varies by model and region. LG Climate shows
+each control only when the air conditioner's ThinQ profile reports a compatible
+writable property. The public API commonly exposes Energy Control as an on/off
+power-saving mode rather than the remote control's 80% / 60% / 40% steps.
 
 ## Requirements
 
