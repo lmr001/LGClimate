@@ -521,7 +521,7 @@ private struct ConnectionView: View {
             if let error = store.error { Label(error, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange) }
             if canGoBack { Button("Refresh now") { Task { await store.refresh(); goBack() } }.buttonStyle(.bordered); Button("Sign out", role: .destructive, action: store.signOut).buttonStyle(.plain) }
             else { Button(store.busy ? "Connecting…" : "Connect") { Task { await store.connect() } }.buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black).disabled(store.busy || store.token.isEmpty).frame(maxWidth: .infinity, alignment: .trailing) }
-            Text("LG Climate 0.3.6 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
+            Text("LG Climate 0.4.0 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
             Text("Not affiliated with, endorsed by, or sponsored by LG Electronics. \"LG\" and \"ThinQ\" are trademarks of their respective owners.")
                 .font(.system(size: 9)).foregroundStyle(UITheme.secondary).multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)

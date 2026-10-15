@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="Docs/Assets/AppIcon.png" width="128" alt="LG Climate app icon">
+
 # LG Climate
 
 **Control LG ThinQ air conditioners from the macOS menu bar.**

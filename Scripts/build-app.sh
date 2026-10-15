@@ -11,7 +11,7 @@ INTEL_BIN="$(swift build -c release --triple x86_64-apple-macosx14.0 --scratch-p
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 xcrun lipo -create "$ARM_BIN" "$INTEL_BIN" -output "$APP/Contents/MacOS/LGClimate"
 cp Scripts/Info.plist "$APP/Contents/Info.plist"
-cp LICENSE THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/"
+cp Resources/AppIcon.icns LICENSE THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/"
 codesign --force --sign "${LGCLIMATE_CODESIGN_IDENTITY:--}" --identifier com.lanceroberts.LGClimate "$APP"
 codesign --verify --deep --strict "$APP"
 echo "Built $APP"

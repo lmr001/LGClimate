@@ -13,6 +13,8 @@ dist/
 *.app
 *.dmg
 *.zip
+work/
+Resources/AppIcon.iconset/
 
 # Signing and notarization material
 .codesign-identity
