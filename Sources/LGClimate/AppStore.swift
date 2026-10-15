@@ -145,7 +145,8 @@ final class AppStore: ObservableObject {
             "relativeMinuteTo\(prefix)": .number(Double(minutes % 60))
         ]]
         deliver(payload, optimistic: nil) { [weak self] in
-            self?.timer = TimerRecord(deviceID: unit.id, action: action, ends: Date().addingTimeInterval(Double(minutes * 60)))
+            self?.timer = TimerRecord(deviceID: unit.id, action: action,
+                ends: Date().addingTimeInterval(Double(minutes * 60)), durationMinutes: minutes)
         }
     }
 

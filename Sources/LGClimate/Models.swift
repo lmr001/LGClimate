@@ -181,4 +181,5 @@ struct TimerRecord: Codable, Sendable {
     let deviceID: String
     let action: String
     let ends: Date
+    let durationMinutes: Int
 }

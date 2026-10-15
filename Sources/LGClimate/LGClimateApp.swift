@@ -75,7 +75,7 @@ private struct ControlsView: View {
                 specialModeRows(unit)
                 if supportsSwing(unit) { Divider(); swingRows(unit) }
                 Divider()
-                timerRow(unit)
+                timerControl(unit)
                 MenuRow(title: "LG Climate settings…", badge: store.error != nil, action: showSettings)
             }
         }
@@ -240,17 +240,58 @@ private struct ControlsView: View {
         }.disabled(!unit.power || isPending).opacity(unit.power ? 1 : 0.4)
     }
 
-    private func timerRow(_ unit: AirConditioner) -> some View {
-        HStack {
-            Label(store.timer?.deviceID == unit.id ? (store.timer?.action == "stop" ? "Turns off" : "Turns on") : "Timer", systemImage: "timer").font(.system(size: 13))
-            if let timer = store.timer, timer.deviceID == unit.id { Text(timer.ends, style: .timer).font(.caption).monospacedDigit().foregroundStyle(UITheme.secondary) }
-            Spacer()
-            Menu(store.timer?.deviceID == unit.id ? "Change" : "Set") {
-                Button("30 minutes") { store.setTimer(minutes: 30) }; Button("1 hour") { store.setTimer(minutes: 60) }
-                Button("2 hours") { store.setTimer(minutes: 120) }; Button("4 hours") { store.setTimer(minutes: 240) }
-                if store.timer?.deviceID == unit.id { Divider(); Button("Cancel timer", role: .destructive, action: store.cancelTimer) }
-            }.menuStyle(.borderlessButton).fixedSize()
+    private func timerControl(_ unit: AirConditioner) -> some View {
+        let active = store.timer?.deviceID == unit.id ? store.timer : nil
+        return VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 5) {
+                Text("TIMER").font(.system(size: 10, weight: .semibold))
+                Spacer()
+                if let active {
+                    Text(active.action == "stop" ? "TURNS OFF IN" : "TURNS ON IN")
+                    Text(active.ends, style: .timer).monospacedDigit()
+                } else {
+                    Text(unit.power ? "TURN OFF AFTER" : "TURN ON AFTER")
+                }
+            }
+            .font(.system(size: 9, weight: .semibold)).foregroundStyle(UITheme.secondary)
+
+            HStack(spacing: 0) {
+                timerButton("30 min", minutes: 30, active: active, unit: unit)
+                timerButton("1 hr", minutes: 60, active: active, unit: unit)
+                timerButton("2 hr", minutes: 120, active: active, unit: unit)
+                timerButton("4 hr", minutes: 240, active: active, unit: unit)
+                if active != nil {
+                    Button(action: store.cancelTimer) {
+                        VStack(spacing: 3) {
+                            Image(systemName: "xmark").font(.system(size: 11, weight: .semibold))
+                            Text("Cancel").font(.system(size: 9.5, weight: .medium))
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 6)
+                    }
+                    .buttonStyle(.plain).foregroundStyle(Color.red.opacity(0.82))
+                    .accessibilityLabel("Cancel timer")
+                }
+            }
+            .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
+        .disabled(!unit.isOnline || isPending)
+    }
+
+    private func timerButton(_ title: String, minutes: Int, active: TimerRecord?, unit: AirConditioner) -> some View {
+        let selected = active?.durationMinutes == minutes
+        return Button { store.setTimer(minutes: minutes) } label: {
+            VStack(spacing: 3) {
+                Image(systemName: selected ? "timer.circle.fill" : "timer").font(.system(size: 11))
+                Text(title).font(.system(size: 9.5, weight: .medium))
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 6)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(selected ? .white : UITheme.secondary)
+        .background(selected ? UITheme.accent(unit.mode).opacity(0.48) : .clear)
+        .accessibilityLabel("Set timer for \(title)")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func supportsSwing(_ unit: AirConditioner) -> Bool {
@@ -435,7 +476,7 @@ private struct ConnectionView: View {
             if let error = store.error { Label(error, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange) }
             if canGoBack { Button("Refresh now") { Task { await store.refresh(); goBack() } }.buttonStyle(.bordered); Button("Sign out", role: .destructive, action: store.signOut).buttonStyle(.plain) }
             else { Button(store.busy ? "Connecting…" : "Connect") { Task { await store.connect() } }.buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black).disabled(store.busy || store.token.isEmpty).frame(maxWidth: .infinity, alignment: .trailing) }
-            Text("LG Climate 0.3.3 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
+            Text("LG Climate 0.3.4 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
             Text("Not affiliated with, endorsed by, or sponsored by LG Electronics. \"LG\" and \"ThinQ\" are trademarks of their respective owners.")
                 .font(.system(size: 9)).foregroundStyle(UITheme.secondary).multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
