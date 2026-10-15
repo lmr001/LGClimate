@@ -70,7 +70,7 @@ private struct ControlsView: View {
                 temperatureSlider(unit)
                 Divider()
                 modeControl(unit)
-                settingsRows(unit)
+                fanControl(unit)
                 Divider()
                 specialModeRows(unit)
                 if supportsSwing(unit) { Divider(); swingRows(unit) }
@@ -157,13 +157,48 @@ private struct ControlsView: View {
         }
     }
 
-    private func settingsRows(_ unit: AirConditioner) -> some View {
-        HStack {
-            Label("Fan speed", systemImage: "fan").font(.system(size: 13))
-            Spacer()
-            Menu(unit.fan?.capitalized ?? "—") { ForEach(unit.fans, id: \.self) { speed in Button(speed.capitalized) { store.setFan(speed) } } }
-                .menuStyle(.borderlessButton).fixedSize()
-        }.disabled(!unit.power || isPending).opacity(unit.power ? 1 : 0.4)
+    private func fanControl(_ unit: AirConditioner) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text("FAN SPEED").font(.system(size: 10, weight: .semibold)).foregroundStyle(UITheme.secondary)
+            if unit.fans.isEmpty {
+                HStack {
+                    Image(systemName: "fan").font(.system(size: 11))
+                    Text("Unavailable").font(.system(size: 11, weight: .medium))
+                }
+                .foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity).padding(.vertical, 9)
+                .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            } else if unit.fans.count <= 5 {
+                HStack(spacing: 0) {
+                    ForEach(unit.fans, id: \.self) { fanButton($0, unit: unit) }
+                }
+                .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            } else {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 4), spacing: 0) {
+                    ForEach(unit.fans, id: \.self) { fanButton($0, unit: unit) }
+                }
+                .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            }
+        }
+        .disabled(!unit.power || isPending)
+        .opacity(unit.power ? 1 : 0.4)
+    }
+
+    private func fanButton(_ speed: String, unit: AirConditioner) -> some View {
+        let selected = unit.fan?.uppercased() == speed.uppercased()
+        return Button { store.setFan(speed) } label: {
+            VStack(spacing: 3) {
+                Image(systemName: fanSymbol(speed)).font(.system(size: 12))
+                Text(fanTitle(speed)).font(.system(size: 9.5, weight: .medium)).lineLimit(1).minimumScaleFactor(0.72)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 6)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(selected ? .white : UITheme.secondary)
+        .background(selected ? UITheme.accent(unit.mode).opacity(0.48) : .clear)
+        .accessibilityLabel("\(fanTitle(speed)) fan speed")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func specialModeRows(_ unit: AirConditioner) -> some View {
@@ -399,7 +434,7 @@ private struct ConnectionView: View {
             if let error = store.error { Label(error, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange) }
             if canGoBack { Button("Refresh now") { Task { await store.refresh(); goBack() } }.buttonStyle(.bordered); Button("Sign out", role: .destructive, action: store.signOut).buttonStyle(.plain) }
             else { Button(store.busy ? "Connecting…" : "Connect") { Task { await store.connect() } }.buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black).disabled(store.busy || store.token.isEmpty).frame(maxWidth: .infinity, alignment: .trailing) }
-            Text("LG Climate 0.3.1 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
+            Text("LG Climate 0.3.2 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
             Text("Not affiliated with, endorsed by, or sponsored by LG Electronics. \"LG\" and \"ThinQ\" are trademarks of their respective owners.")
                 .font(.system(size: 9)).foregroundStyle(UITheme.secondary).multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
@@ -421,6 +456,25 @@ private func activity(_ unit: AirConditioner, target: Double?) -> String {
     guard unit.power else { return "Off" }
     let goal = "\(formatTemperature(target)) °C"
     return switch unit.mode { case .cool: "Cooling to \(goal)"; case .heat: "Heating to \(goal)"; case .auto: "Auto · \(goal)"; case .dry: "Dehumidifying"; case .fan: "Fan only"; case nil: "Running" }
+}
+
+private func fanTitle(_ value: String) -> String {
+    switch value.uppercased() {
+    case "AUTO", "NATURE": "Auto"
+    case "MID": "Medium"
+    case "SLOW_LOW": "Slow low"
+    case "LOW_MID": "Low mid"
+    case "MID_HIGH": "Mid high"
+    default: value.replacingOccurrences(of: "_", with: " ").capitalized
+    }
+}
+
+private func fanSymbol(_ value: String) -> String {
+    switch value.uppercased() {
+    case "AUTO", "NATURE": "fan.badge.automatic"
+    case "HIGH", "MID_HIGH": "fan.fill"
+    default: "fan"
+    }
 }
 
 private func haptic() {
