@@ -117,11 +117,9 @@ its controls stay disabled until it reconnects.
 
 ## Credits
 
-The menu-bar interaction and animated appliance presentation draw inspiration
-from [TCLimate](https://github.com/umarz317/TCLimate) by Umar Afzal and
-[Celsius](https://github.com/gbvillarinho/celsius) by Gabriel Villarinho.
-LG ThinQ Connect protocol and capability work was adapted from
-[lg-ac](https://github.com/mendelB/lg-ac) by Mendel Blesofsky.
+- [TCLimate](https://github.com/umarz317/TCLimate) by Umar Afzal — inspiration for the menu-bar interaction and animated appliance presentation.
+- [Celsius](https://github.com/gbvillarinho/celsius) by Gabriel Villarinho — inspiration for the macOS menu-bar experience.
+- [lg-ac](https://github.com/mendelB/lg-ac) by Mendel Blesofsky — LG ThinQ Connect protocol and capability work.
 
 See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for copyright and license
 notices.
