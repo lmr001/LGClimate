@@ -232,12 +232,10 @@ private struct ControlsView: View {
     private func airflowControl(_ unit: AirConditioner) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Text("AIRFLOW").font(.system(size: 10, weight: .semibold)).foregroundStyle(UITheme.secondary)
-            HStack(spacing: 0) {
+            HStack(spacing: 8) {
                 swingButton(vertical: true, unit: unit)
                 swingButton(vertical: false, unit: unit)
             }
-            .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
         .disabled(!unit.power || isPending)
         .opacity(unit.power ? 1 : 0.4)
@@ -253,17 +251,34 @@ private struct ControlsView: View {
             haptic()
             store.setSwing(vertical: vertical, on: !on)
         } label: {
-            VStack(spacing: 3) {
-                Image(systemName: icon).font(.system(size: 11, weight: .semibold))
-                Text(title).font(.system(size: 10, weight: .medium))
-                Text(available ? (on ? "On" : "Off") : "Unavailable")
-                    .font(.system(size: 8.5, weight: .medium)).opacity(0.72)
+            HStack(spacing: 9) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 28, height: 28)
+                    .foregroundStyle(on && available ? UITheme.accent(unit.mode) : UITheme.secondary)
+                    .background((on && available ? UITheme.accent(unit.mode).opacity(0.16) : Color.white.opacity(0.06)), in: Circle())
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title).font(.system(size: 11, weight: .semibold))
+                    Text(available ? (on ? "Active" : "Off") : "Unavailable")
+                        .font(.system(size: 8.5, weight: .semibold))
+                        .foregroundStyle(on && available ? UITheme.accent(unit.mode) : UITheme.secondary)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background((on && available ? UITheme.accent(unit.mode).opacity(0.13) : Color.white.opacity(0.045)), in: Capsule())
+                }
+                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity).padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 10).padding(.vertical, 9)
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)
-        .foregroundStyle(on && available ? .white : UITheme.secondary)
-        .background(on && available ? UITheme.accent(unit.mode).opacity(0.48) : .clear)
+        .foregroundStyle(available ? .white : UITheme.secondary)
+        .background(on && available ? UITheme.accent(unit.mode).opacity(0.10) : Color.white.opacity(0.045),
+            in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(on && available ? UITheme.accent(unit.mode).opacity(0.48) : Color.white.opacity(0.08), lineWidth: 1)
+        }
         .disabled(!available)
         .help(available ? "Turn \(title.lowercased()) swing \(on ? "off" : "on")" : "This direction is not reported by the air conditioner")
         .accessibilityLabel("\(title) swing, \(available ? (on ? "on" : "off") : "unavailable")")
@@ -506,7 +521,7 @@ private struct ConnectionView: View {
             if let error = store.error { Label(error, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange) }
             if canGoBack { Button("Refresh now") { Task { await store.refresh(); goBack() } }.buttonStyle(.bordered); Button("Sign out", role: .destructive, action: store.signOut).buttonStyle(.plain) }
             else { Button(store.busy ? "Connecting…" : "Connect") { Task { await store.connect() } }.buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black).disabled(store.busy || store.token.isEmpty).frame(maxWidth: .infinity, alignment: .trailing) }
-            Text("LG Climate 0.3.5 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
+            Text("LG Climate 0.3.6 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
             Text("Not affiliated with, endorsed by, or sponsored by LG Electronics. \"LG\" and \"ThinQ\" are trademarks of their respective owners.")
                 .font(.system(size: 9)).foregroundStyle(UITheme.secondary).multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
