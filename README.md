@@ -11,6 +11,10 @@
 
 </div>
 
+<div align="center">
+  <img src="Docs/Assets/demo.gif" width="640" alt="LG Climate controlling an LG air conditioner from the macOS menu bar">
+</div>
+
 LG Climate is a native SwiftUI menu-bar controller for LG ThinQ air
 conditioners. It connects directly to LG ThinQ Connect, discovers each unit's
 capabilities at runtime, and keeps the Personal Access Token in macOS Keychain.
