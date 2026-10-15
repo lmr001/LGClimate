@@ -32,6 +32,7 @@ There is no intermediary project server, analytics service, or background daemon
 - Animated wall unit with mode-aware airflow, fan speed, and louver movement
 - Half-degree temperature control when reported by the device
 - Optimistic controls followed by confirmation from LG's reported state
+- State-only background sync so changes made with the physical remote appear promptly
 - Capability-driven UI instead of a hard-coded model profile
 - Universal Apple silicon and Intel builds
 

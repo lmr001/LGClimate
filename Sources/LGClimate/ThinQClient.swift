@@ -62,6 +62,7 @@ actor ThinQClient {
         request.setValue("OP", forHTTPHeaderField: "x-service-phase")
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("true", forHTTPHeaderField: "x-conditional-control")
             request.httpBody = body
         }
         let (data, response) = try await session.data(for: request)

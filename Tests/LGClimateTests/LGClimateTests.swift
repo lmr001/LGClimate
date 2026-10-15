@@ -61,6 +61,31 @@ final class LGClimateTests: XCTestCase {
         XCTAssertEqual(unit.energyControl?.onValue, .string("ENERGY_SAVING"))
     }
 
+    func testDetailedFanAndOfficialSwingNames() throws {
+        let profile = DeviceProfile(json: .object(["property": .object([
+            "airFlow": .object(["windStrengthDetail": spec(type: "enum", values: [.string("LOW_MID"), .string("MID_HIGH")])]),
+            "windDirection": .object([
+                "windRotateUpDown": spec(type: "boolean", values: []),
+                "windRotateLeftRight": spec(type: "boolean", values: [])
+            ])
+        ])]))
+        let unit = makeUnit(profile: profile, state: [
+            "airFlow": .object(["windStrengthDetail": .string("MID_HIGH")]),
+            "windDirection": .object([
+                "windRotateUpDown": .bool(true),
+                "windRotateLeftRight": .bool(false)
+            ])
+        ])
+
+        XCTAssertEqual(unit.fanProperty, "windStrengthDetail")
+        XCTAssertEqual(unit.fan, "MID_HIGH")
+        XCTAssertEqual(unit.fans, ["LOW_MID", "MID_HIGH"])
+        XCTAssertEqual(unit.verticalSwingProperty, "windRotateUpDown")
+        XCTAssertEqual(unit.horizontalSwingProperty, "windRotateLeftRight")
+        XCTAssertEqual(unit.verticalSwing, true)
+        XCTAssertEqual(unit.horizontalSwing, false)
+    }
+
     private func makeUnit(profile: DeviceProfile, state: [String: JSONValue]) -> AirConditioner {
         let device = DeviceSummary(json: .object(["deviceId": .string("1"), "deviceInfo": .object(["alias": .string("Office"), "modelName": .string("RAC")])]))!
         return AirConditioner(summary: device, profile: profile, state: state, error: nil)

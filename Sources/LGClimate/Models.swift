@@ -91,7 +91,15 @@ struct AirConditioner: Identifiable, Sendable {
     }
     var currentTemperature: Double? { temperature(named: "currentTemperature") }
     var targetTemperature: Double? { temperature(named: "targetTemperature") ?? mode.flatMap { temperature(named: $0.rawValue.lowercased().replacingOccurrences(of: "air_dry", with: "dry") + "TargetTemperature") } }
-    var fan: String? { state.value("airFlow", "windStrength")?.string }
+    var fan: String? {
+        state.value("airFlow", "windStrengthDetail")?.string
+            ?? state.value("airFlow", "windStrength")?.string
+    }
+    var fanProperty: String? {
+        if profile.spec("airFlow", "windStrengthDetail") != nil { return "windStrengthDetail" }
+        if profile.spec("airFlow", "windStrength") != nil { return "windStrength" }
+        return nil
+    }
     var energyControlEnabled: Bool {
         if let value = state.value("powerSave", "powerSaveEnabled")?.bool { return value }
         return jobMode == "ENERGY_SAVING"
@@ -100,8 +108,16 @@ struct AirConditioner: Identifiable, Sendable {
         if let value = state.value("turbo", "turboEnabled")?.bool { return value }
         return Self.jetFanValues.contains(fan?.uppercased() ?? "")
     }
-    var verticalSwing: Bool? { state.value("windDirection", "rotateUpDown")?.bool }
-    var horizontalSwing: Bool? { state.value("windDirection", "rotateLeftRight")?.bool }
+    var verticalSwing: Bool? {
+        state.value("windDirection", "windRotateUpDown")?.bool
+            ?? state.value("windDirection", "rotateUpDown")?.bool
+    }
+    var horizontalSwing: Bool? {
+        state.value("windDirection", "windRotateLeftRight")?.bool
+            ?? state.value("windDirection", "rotateLeftRight")?.bool
+    }
+    var verticalSwingProperty: String? { writableProperty(resource: "windDirection", candidates: ["windRotateUpDown", "rotateUpDown"]) }
+    var horizontalSwingProperty: String? { writableProperty(resource: "windDirection", candidates: ["windRotateLeftRight", "rotateLeftRight"]) }
 
     var modes: [ACMode] {
         guard let values = profile.spec("airConJobMode", "currentJobMode")?.values else { return [] }
@@ -114,7 +130,8 @@ struct AirConditioner: Identifiable, Sendable {
         }
         guard let jet = allFans.first(where: { Self.jetFanValues.contains($0.uppercased()) }),
               let normal = preferredNormalFan else { return nil }
-        return FeatureToggle(resource: "airFlow", property: "windStrength", onValue: .string(jet), offValue: .string(normal))
+        guard let fanProperty else { return nil }
+        return FeatureToggle(resource: "airFlow", property: fanProperty, onValue: .string(jet), offValue: .string(normal))
     }
     var energyControl: FeatureToggle? {
         if profile.spec("powerSave", "powerSaveEnabled") != nil {
@@ -141,10 +158,17 @@ struct AirConditioner: Identifiable, Sendable {
     }
 
     private static let jetFanValues: Set<String> = ["POWER", "JET", "TURBO"]
-    private var allFans: [String] { profile.spec("airFlow", "windStrength")?.values.compactMap(\.string) ?? [] }
+    private var allFans: [String] {
+        guard let fanProperty else { return [] }
+        return profile.spec("airFlow", fanProperty)?.values.compactMap(\.string) ?? []
+    }
     private var preferredNormalFan: String? {
         let preferred = ["HIGH", "MID_HIGH", "MID", "AUTO", "NATURE", "LOW"]
         return preferred.compactMap { wanted in allFans.first { $0.uppercased() == wanted } }.first ?? fans.first
+    }
+
+    private func writableProperty(resource: String, candidates: [String]) -> String? {
+        candidates.first { profile.spec(resource, $0) != nil }
     }
 
     mutating func apply(resource: String, property: String, value: JSONValue) {

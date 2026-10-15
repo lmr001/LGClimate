@@ -79,6 +79,7 @@ private struct ControlsView: View {
                 MenuRow(title: "LG Climate settings…", badge: store.error != nil, action: showSettings)
             }
         }
+        .task(id: unit?.id) { await store.syncRemoteChanges() }
     }
 
     private func header(_ unit: AirConditioner) -> some View {
@@ -230,10 +231,10 @@ private struct ControlsView: View {
 
     private func swingRows(_ unit: AirConditioner) -> some View {
         VStack(spacing: 10) {
-            if unit.profile.spec("windDirection", "rotateUpDown") != nil {
+            if unit.verticalSwingProperty != nil {
                 CircleToggleRow(icon: "arrow.up.and.down", title: "Up / down swing", on: unit.verticalSwing ?? false) { store.setSwing(vertical: true, on: !(unit.verticalSwing ?? false)) }
             }
-            if unit.profile.spec("windDirection", "rotateLeftRight") != nil {
+            if unit.horizontalSwingProperty != nil {
                 CircleToggleRow(icon: "arrow.left.and.right", title: "Side-to-side swing", on: unit.horizontalSwing ?? false) { store.setSwing(vertical: false, on: !(unit.horizontalSwing ?? false)) }
             }
         }.disabled(!unit.power || isPending).opacity(unit.power ? 1 : 0.4)
@@ -253,7 +254,7 @@ private struct ControlsView: View {
     }
 
     private func supportsSwing(_ unit: AirConditioner) -> Bool {
-        unit.profile.spec("windDirection", "rotateUpDown") != nil || unit.profile.spec("windDirection", "rotateLeftRight") != nil
+        unit.verticalSwingProperty != nil || unit.horizontalSwingProperty != nil
     }
 
 }
@@ -434,7 +435,7 @@ private struct ConnectionView: View {
             if let error = store.error { Label(error, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange) }
             if canGoBack { Button("Refresh now") { Task { await store.refresh(); goBack() } }.buttonStyle(.bordered); Button("Sign out", role: .destructive, action: store.signOut).buttonStyle(.plain) }
             else { Button(store.busy ? "Connecting…" : "Connect") { Task { await store.connect() } }.buttonStyle(.borderedProminent).tint(.white).foregroundStyle(.black).disabled(store.busy || store.token.isEmpty).frame(maxWidth: .infinity, alignment: .trailing) }
-            Text("LG Climate 0.3.2 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
+            Text("LG Climate 0.3.3 · Native macOS menu-bar controller").font(.caption2).foregroundStyle(UITheme.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 4)
             Text("Not affiliated with, endorsed by, or sponsored by LG Electronics. \"LG\" and \"ThinQ\" are trademarks of their respective owners.")
                 .font(.system(size: 9)).foregroundStyle(UITheme.secondary).multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)

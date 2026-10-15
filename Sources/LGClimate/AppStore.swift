@@ -75,6 +75,24 @@ final class AppStore: ObservableObject {
         busy = false
     }
 
+    func syncRemoteChanges() async {
+        guard let client, connected, !busy else { return }
+        let currentUnits = units
+        var receivedUpdate = false
+        for unit in currentUnits where !pending.contains(unit.id) {
+            do {
+                let reported = try await client.state(deviceID: unit.id)
+                guard let index = units.firstIndex(where: { $0.id == unit.id }) else { continue }
+                units[index].state = reported
+                units[index].error = nil
+                receivedUpdate = true
+            } catch {
+                // Retain the last known state; the next lightweight sync can recover.
+            }
+        }
+        if receivedUpdate { lastUpdated = Date() }
+    }
+
     private func loadUnits(using client: ThinQClient) async throws -> [AirConditioner] {
         let devices = try await client.devices().filter { $0.type.contains("AIR_CONDITIONER") || $0.type.isEmpty }
         var result: [AirConditioner] = []
@@ -93,7 +111,10 @@ final class AppStore: ObservableObject {
 
     func setPower(_ on: Bool) { send(resource: "operation", property: "airConOperationMode", value: .string(on ? "POWER_ON" : "POWER_OFF")) }
     func setMode(_ mode: ACMode) { send(resource: "airConJobMode", property: "currentJobMode", value: .string(mode.rawValue)) }
-    func setFan(_ fan: String) { send(resource: "airFlow", property: "windStrength", value: .string(fan)) }
+    func setFan(_ fan: String) {
+        guard let property = selected?.fanProperty else { return }
+        send(resource: "airFlow", property: property, value: .string(fan))
+    }
     func setJetMode(_ on: Bool) {
         guard let control = selected?.jetControl else { return }
         send(resource: control.resource, property: control.property, value: on ? control.onValue : control.offValue)
@@ -102,7 +123,11 @@ final class AppStore: ObservableObject {
         guard let control = selected?.energyControl else { return }
         send(resource: control.resource, property: control.property, value: on ? control.onValue : control.offValue)
     }
-    func setSwing(vertical: Bool, on: Bool) { send(resource: "windDirection", property: vertical ? "rotateUpDown" : "rotateLeftRight", value: .bool(on)) }
+    func setSwing(vertical: Bool, on: Bool) {
+        guard let unit = selected,
+              let property = vertical ? unit.verticalSwingProperty : unit.horizontalSwingProperty else { return }
+        send(resource: "windDirection", property: property, value: .bool(on))
+    }
     func setTemperature(_ value: Double) {
         guard let unit = selected, let spec = unit.temperatureSpec else { return }
         let step = spec.step ?? 0.5
@@ -172,8 +197,8 @@ final class AppStore: ObservableObject {
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(60))
-                await self?.refresh()
+                try? await Task.sleep(for: .seconds(15))
+                await self?.syncRemoteChanges()
             }
         }
     }
